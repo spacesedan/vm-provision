@@ -1,0 +1,12 @@
+- hosts: all
+  pre_tasks:
+    - name: update cache
+      apt:
+        update_cache: true
+      when: ansible_distribution == "Ubuntu"
+
+- hosts: all
+  roles:
+    - base
+    - rust
+
