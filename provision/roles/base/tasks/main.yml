@@ -1,13 +1,15 @@
+## zsh installation and set up
 - name: check if zsh exists
-  shell: command zsh -v
-  register: zsh exists
+  shell: command zsh --version
+  register: zsh_exists
   ignore_errors: true
 
 - name: install zsh
-  when: (zsh_exists is failed) and (ansible.distribution == "Ubuntu")
+  when: (zsh_exists is failed) and (ansible_distribution == "Ubuntu")
   become: true
   apt:
     name: zsh
+    state: present
 
 - name: change default shell
   when: zsh_exists is failed
@@ -20,30 +22,82 @@
   when: zsh_exists is failed
   get_url:
     url: https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
-    dest: /tmp/install_omz.sh
+    dest: /tmp/install_ohmyzsh.sh
 
 - name: run Oh My Zsh installation script
   when: zsh_exists is failed
-  command: sh /tmp/install_omz.sh --unattended
+  command: sh /tmp/install_ohmyzsh.sh --unattended
   register: omz_result
-  failed_when: "'FAILED' in ohz_result.stderr"
+  failed_when: "'FAILED' in omz_result.stderr"
 
 - name: clone powerlevel10k repo
   when: zsh_exists is failed
   git:
-    repo: git clone --depth=1 https://github.com/romkatv/powerlevel10k.gitnulnull
+    repo: https://github.com/romkatv/powerlevel10k.git
     dest: "{{ home_path }}/powerlevel10k"
 
 - name: copy .p10k.zsh file
   when: zsh_exists is failed
   copy:
     src: ../files/.p10k.zsh
-    dest: "{{ home_path }}/.p10k.zsh"
+    dest: "{{ home_path }}.p10k.zsh"
 
 - name: copy .zshrc
   when: zsh_exists is failed
   copy:
     src: ../files/.zshrc
-    dest: "{{ home_path }}/.zshrc"
+    dest: "{{ home_path }}.zshrc"
 
+# neovim installation
+- name: check if neovim exists
+  shell: command nvim --version
+  register: nvim_exists
+  ignore_errors: true
+
+- name: install neovim pre reqs
+  become: true
+  when: nvim_exists is failed
+  apt:
+    name:
+      - ninja-build
+      - gettext
+      - cmake
+      - unzip
+      - curl
+      - ripgrep
+
+- name: clone nvim repo
+  when: nvim_exists is failed
+  git:
+    repo: https://github.com/neovim/neovim.git
+    dest: "{{ base_path}}/neovim"
+
+- name: build nvim from source
+  when: nvim_exists is failed
+  command:  make CMAKE_BUILD_TYPE=RelWithDebInfo
+  args:
+    chdir: "{{ base_path }}neovim"
+
+- name: create neovim .deb package
+  when: nvim_exists is failed
+  command: cpack -G DEB
+  args:
+    chdir: "{{ base_path }}neovim/build"
+
+- name: install neovim from .deb package
+  when: nvim_exists is failed
+  become: true
+  command: dpkg -i nvim-linux64.deb
+  args:
+    chdir: "{{ base_path }}neovim/build"
+
+- name: copy nvim config
+  copy:
+    src: ../files/nvim/
+    dest: "{{ home_path }}.cofig/nvim"
+
+- name: clone packer repo
+  git:
+    repo: https://github.com/wbthomason/packer.nvim
+    dest: "{{ home_path }}.local/share/nvim/site/pack/packer/start/packer.nvim"
 
