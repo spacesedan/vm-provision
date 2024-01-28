@@ -92,12 +92,32 @@
     chdir: "{{ base_path }}neovim/build"
 
 - name: copy nvim config
+  when: nvim_exists is failed
   copy:
     src: ../files/nvim/
     dest: "{{ home_path }}.cofig/nvim"
 
 - name: clone packer repo
+  when: nvim_exists is failed
   git:
     repo: https://github.com/wbthomason/packer.nvim
     dest: "{{ home_path }}.local/share/nvim/site/pack/packer/start/packer.nvim"
+
+# Configure tmux
+- name: tmux conf file exists
+  stat:
+    path: "{{ home_path }}.tmux.conf"
+  register: tmux_conf
+
+- name: clone tpm repo
+  when: not tmux_conf.stat.exists
+  git:
+    repo: https://github.com/tmux-plugins/tpm
+    dest: "{{ home_path }}.tmux/plugins/tpm"
+
+- name: copy tmux conf
+  when: not tmux_conf.stat.exists
+  copy:
+    src: ../files/.tmux.conf
+    dest: "{{ home_path }}.tmux.conf"
 
