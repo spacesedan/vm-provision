@@ -95,7 +95,7 @@
   when: nvim_exists is failed
   copy:
     src: ../files/nvim/
-    dest: "{{ home_path }}.cofig/nvim"
+    dest: "{{ home_path }}.config/nvim"
 
 - name: clone packer repo
   when: nvim_exists is failed
